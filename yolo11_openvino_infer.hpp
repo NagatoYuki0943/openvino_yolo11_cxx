@@ -27,11 +27,12 @@ namespace yolo
     class OpenvinoInference
     {
     public:
-        cv::Size2f _model_input_shape; // Input shape of the model
-        cv::Size _model_output_shape;  // Output shape of the model
-
-        ov::InferRequest _inference_request; // OpenVINO inference request
+        ov::Core _core;
         ov::CompiledModel _compiled_model;   // OpenVINO compiled model
+        ov::InferRequest _inference_request; // OpenVINO inference request
+
+        cv::Size _model_input_shape; // Input shape of the model (width, height)
+        cv::Size _model_output_shape;  // Output shape of the model (width, height)
 
         std::vector<std::string> _classes{
             "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
@@ -44,16 +45,39 @@ namespace yolo
             "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase",
             "scissors", "teddy bear", "hair drier", "toothbrush"};
 
-        void InitializeModel(const std::string &model_path)
+        void InitializeModel(
+            const std::string &model_path,
+            const cv::Size& model_input_shape = cv::Size(640, 640)
+        )
         {
+            std::cout << "\n---------- start InitializeModel ----------" << std::endl;
+
             ov::Core core;                                                  // OpenVINO core object
             std::shared_ptr<ov::Model> model = core.read_model(model_path); // Read the model from file
 
             // If the model has dynamic shapes, reshape it to the specified input shape
             if (model->is_dynamic())
-            {
-                model->reshape({1, 3, static_cast<long int>(this->_model_input_shape.height), static_cast<long int>(this->_model_input_shape.width)});
-            }
+                model->reshape({1, 3, static_cast<long int>(model_input_shape.height), static_cast<long int>(model_input_shape.width)});
+
+            int width, height;
+
+            // Get input shape from the model
+            const std::vector<ov::Output<ov::Node>> inputs = model->inputs();
+            const ov::Shape input_shape = inputs[0].get_shape();
+            std::cout << "output_shape: " << input_shape << std::endl;
+            height = input_shape[2];
+            width = input_shape[3];
+            this->_model_input_shape = cv::Size(width, height);
+            std::cout << "_model_input_shape shape(wxh): " << this->_model_input_shape << std::endl;
+
+            // Get output shape from the model
+            const std::vector<ov::Output<ov::Node>> outputs = model->outputs();
+            const ov::Shape output_shape = outputs[0].get_shape();
+            std::cout << "output_shape: " << output_shape << std::endl;
+            height = output_shape[1];
+            width = output_shape[2];
+            this->_model_output_shape = cv::Size(width, height);
+            std::cout << "_model_output_shape shape(wxh): " << this->_model_output_shape << std::endl;
 
             // Preprocessing setup for the model
             ov::preprocess::PrePostProcessor ppp = ov::preprocess::PrePostProcessor(model);
@@ -69,28 +93,13 @@ namespace yolo
             this->_compiled_model = core.compile_model(model, "AUTO");
             this->_inference_request = this->_compiled_model.create_infer_request(); // Create inference request
 
-            int width, height;
-
-            // Get input shape from the model
-            const std::vector<ov::Output<ov::Node>> inputs = model->inputs();
-            const ov::Shape input_shape = inputs[0].get_shape();
-            height = input_shape[1];
-            width = input_shape[2];
-            this->_model_input_shape = cv::Size2f(width, height);
-
-            // Get output shape from the model
-            const std::vector<ov::Output<ov::Node>> outputs = model->outputs();
-            const ov::Shape output_shape = outputs[0].get_shape();
-            height = output_shape[1];
-            width = output_shape[2];
-            this->_model_output_shape = cv::Size(width, height);
+            std::cout << "---------- InitializeModel end ----------\n" << std::endl;
         }
 
         // Constructor to initialize the model with specified input shape
         OpenvinoInference(const std::string &model_path, const cv::Size model_input_shape)
         {
-            this->_model_input_shape = model_input_shape;
-            InitializeModel(model_path);
+            InitializeModel(model_path, model_input_shape);
         }
 
         std::vector<YoloDetectResult> RunInference(
@@ -99,6 +108,8 @@ namespace yolo
             const float NMS_threshold = 0.5
         )
         {
+            std::cout << "\n---------- start RunInference ----------" << std::endl;
+
             float scale_factor = Preprocessing(image);          // Preprocess the input image
             this->_inference_request.infer();                   // Run inference
             auto detect_results = PostProcessing(
@@ -107,15 +118,19 @@ namespace yolo
                 scale_factor,
                 image.size()
             ); // Postprocess the inference results
+
+            std::cout << "---------- RunInference end ----------\n" << std::endl;
             return detect_results;
         }
 
         // Method to preprocess the input image
         float Preprocessing(const cv::Mat &image)
         {
+            std::cout << "\n---------- start Preprocessing ----------" << std::endl;
+
             float scale_factor = std::min(
-                this->_model_input_shape.width / static_cast<float>(image.cols),
-                this->_model_input_shape.height / static_cast<float>(image.rows));
+                static_cast<float>(this->_model_input_shape.width) / static_cast<float>(image.cols),
+                static_cast<float>(this->_model_input_shape.height) / static_cast<float>(image.rows));
             int new_width = static_cast<int>(image.cols * scale_factor);
             int new_height = static_cast<int>(image.rows * scale_factor);
 
@@ -123,7 +138,7 @@ namespace yolo
             // 缩放高宽的长边为最大长度
             cv::resize(image, resized_image, {new_width, new_height}, 0, 0, cv::INTER_AREA); // Resize the image to imagech the model input shape
 
-            std::cout << "resized_image size: " << resized_image.size() << std::endl;
+            std::cout << "resized_image size(wxh): " << resized_image.size() << std::endl;
             // cv::imshow("resized_image", resized_image);
             // cv::waitKey(0);
 
@@ -140,7 +155,7 @@ namespace yolo
                 cv::BORDER_CONSTANT,
                 cv::Scalar(0, 0, 0));
 
-            std::cout << "copyMakeBorder image size: " << resized_image.size() << std::endl;
+            std::cout << "copyMakeBorder image size(wxh): " << resized_image.size() << std::endl;
             // cv::imshow("resized_image", resized_image);
             // cv::waitKey(0);
 
@@ -151,6 +166,7 @@ namespace yolo
 
             this->_inference_request.set_input_tensor(input_tensor); // Set input tensor for inference
 
+            std::cout << "---------- Preprocessing end ----------\n" << std::endl;
             return scale_factor;
         }
 
@@ -162,6 +178,8 @@ namespace yolo
             const cv::Size original_shape
         )
         {
+            std::cout << "\n---------- start PostProcessing ----------" << std::endl;
+
             std::vector<int> class_list;
             std::vector<float> confidence_list;
             std::vector<cv::Rect> box_list;
@@ -172,6 +190,8 @@ namespace yolo
             // 84 行：代表每个候选框的 84 个属性。前 4 个是中心点坐标和宽高 (cx,cy,w,h)，后 80 个是该框属于 80 个类别的得分。
             const float *detections = this->_inference_request.get_output_tensor().data<const float>();
             const cv::Mat detection_outputs(this->_model_output_shape, CV_32F, (float *)detections); // Create OpenCV imagerix from output tensor
+            std::cout << "detection_outputs shape(wxh): " << detection_outputs.size() << std::endl;
+
 
             // 【新增】设定一个足够大的常量作为偏移基数 (通常 YOLO 输入是 640 或 1280，4096 绝对够用)
             const int max_wh = 4096;
@@ -179,6 +199,7 @@ namespace yolo
             // 2. 将其转置为 8400 x 84 (行数变成 8400，列数变成 84)
             cv::Mat transposed_outputs;
             cv::transpose(detection_outputs, transposed_outputs);
+            std::cout << "transposed_outputs shape(wxh): " << transposed_outputs.size() << std::endl;
 
             // Iterate over detections and collect class IDs, confidence scores, and bounding boxes
             // 循环 8400 次，每次处理一列（即一个预测框）
@@ -247,6 +268,8 @@ namespace yolo
 
                 results.push_back(result);
             }
+
+            std::cout << "---------- PostProcessing end ----------\n" << std::endl;
             return results;
         }
 
