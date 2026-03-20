@@ -8,12 +8,10 @@
 
 namespace fs = std::filesystem;
 
-int main(int argc, char *argv[])
-{
-    std::cout << "argc: " << argc << std::endl;
-    std::cout << "program name: " << argv[0] << std::endl;
 
-    std::string image_path = "../../../images/bus.jpg";
+int predict_image()
+{
+        std::string image_path = "../../../images/bus.jpg";
     if (!fs::exists(image_path))
     {
         std::cout << "image_path: " << image_path << "not exist" << std::endl;
@@ -65,6 +63,18 @@ int main(int argc, char *argv[])
     // Display the image with the detections
     cv::imshow("draw_image", draw_image);
     cv::waitKey(0);
+
+    return 0;
+}
+
+int main(int argc, char *argv[])
+{
+    std::cout << "argc: " << argc << std::endl;
+    std::cout << "program name: " << argv[0] << std::endl;
+
+    int res = predict_image();
+    if (res != 0)
+        return -1;
 
     return 0;
 }
