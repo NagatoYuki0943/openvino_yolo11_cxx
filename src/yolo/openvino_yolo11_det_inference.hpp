@@ -2,6 +2,7 @@
 
 #ifndef OPENVINO_YOLO11_DET_INFER_HPP
 #define OPENVINO_YOLO11_DET_INFER_HPP
+#pragma once
 
 #include <string>
 #include <vector>
@@ -22,6 +23,7 @@ namespace yolo
         int top;
         int right;
         int bottom;
+        int track_id = -1;
     };
 
     class OpenvinoYolo11DetInference
@@ -333,6 +335,8 @@ namespace yolo
 
             // Prepare the class label and confidence text
             std::string classString = class_name + " " + std::to_string(confidence).substr(0, 4);
+            if (result.track_id >= 0)
+                classString = classString + " " + std::to_string(result.track_id);
 
             // Get the size of the text box
             cv::Size textSize = cv::getTextSize(classString, cv::FONT_HERSHEY_DUPLEX, 0.75, 1, 0);
