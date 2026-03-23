@@ -12,6 +12,7 @@
                 "CMAKE_CXX_COMPILER": "cl.exe",
                 "OpenVINO_DIR": "C:/cxx/OpenVINO/runtime/cmake",
                 "OpenCV_DIR": "C:/cxx/opencv/build",
+                "Eigen3_DIR": "C:/cxx/eigen3_install/share/eigen3/cmake",
                 "CMAKE_PREFIX_PATH": "C:/miniconda3/envs/cxx/Library",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
             },

@@ -34,6 +34,14 @@ if(OpenVINO_FOUND)
     message("OpenVINO Target Include Dirs: ${OV_INCLUDE_DIR}")
 endif()
 
+# Eigen3
+find_package(Eigen3 REQUIRED)
+if(Eigen3_FOUND)
+    # 获取目标接口的包含目录
+    get_target_property(Eigen3_INCLUDE_DIR Eigen3::Eigen INTERFACE_INCLUDE_DIRECTORIES)
+    message("Eigen3 Target Include Dirs: ${Eigen3_INCLUDE_DIR}")
+endif()
+
 # xtensor
 # find_package(xtensor REQUIRED)
 # if(xtensor_FOUND)
@@ -61,6 +69,11 @@ set(SOURCES
     main
     "main.cpp"
     "src/yolo/openvino_yolo11_det_inference.hpp"
+    "src/ByteTrack/BYTETracker.cpp"
+    "src/ByteTrack/kalmanFilter.cpp"
+    "src/ByteTrack/lapjv.cpp"
+    "src/ByteTrack/STrack.cpp"
+    "src/ByteTrack/utils.cpp"
 )
 
 # 添加可执行文件
@@ -75,6 +88,7 @@ target_include_directories(main PRIVATE include)
 target_link_libraries(main PRIVATE
     ${OpenCV_LIBS}
     openvino::runtime
+    Eigen3::Eigen
     # MKL::MKL
     # xtensor
     # xtensor-blas
