@@ -311,9 +311,9 @@ int main(int argc, char *argv[])
     std::cout << "argc: " << argc << std::endl;
     std::cout << "program name: " << argv[0] << std::endl;
 
-    // int res = predict_image();
+    int res = predict_image();
     // int res = predict_video();
-    int res = track_video();
+    // int res = track_video();
     if (res != 0)
         return -1;
 

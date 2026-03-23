@@ -37,7 +37,6 @@ namespace yolo
         cv::Size _model_output_shape; // Output shape of the model (width, height)
 
     public:
-
         std::vector<std::string> _classes{
             "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
             "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
@@ -48,7 +47,7 @@ namespace yolo
             "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard",
             "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase",
             "scissors", "teddy bear", "hair drier", "toothbrush"};
-    void InitializeModel(
+        void InitializeModel(
             const std::string &model_path,
             const cv::Size &model_input_shape = cv::Size(640, 640))
         {
@@ -316,6 +315,17 @@ namespace yolo
         }
     };
 
+    // 辅助函数：根据固定的 ID 生成稳定且明亮的颜色
+    cv::Scalar GetColorForId(int id)
+    {
+        // 使用质数进行简单的哈希计算，放大不同 ID 之间的颜色差异
+        // 取模 136 然后加上 120，确保颜色通道值在 120-255 之间（保证明亮度）
+        int r = 120 + ((id * 37) % 136);
+        int g = 120 + ((id * 73) % 136);
+        int b = 120 + ((id * 109) % 136);
+        return cv::Scalar(b, g, r);
+    }
+
     cv::Mat DrawDetectedObject(cv::Mat &image, const std::vector<YoloDetectResult> &detect_results)
     {
         for (const auto &result : detect_results)
@@ -324,40 +334,42 @@ namespace yolo
             const std::string &class_name = result.class_name;
             const int &class_id = result.class_id;
 
-            // Generate a random color for the bounding box
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_int_distribution<int> dis(120, 255);
-            const cv::Scalar &color = cv::Scalar(dis(gen), dis(gen), dis(gen));
+            // 优先使用 track_id 获取颜色。如果未使用追踪器，则退化为按类别区分颜色
+            int id_to_color = (result.track_id >= 0) ? result.track_id : class_id;
+            const cv::Scalar color = GetColorForId(id_to_color);
 
-            // Draw the bounding box around the detected object
+            // 绘制目标边界框
             cv::rectangle(image, cv::Point(result.left, result.top), cv::Point(result.right, result.bottom), color, 2);
 
-            // Prepare the class label and confidence text
+            // 准备标签文本
             std::string classString = class_name + " " + std::to_string(confidence).substr(0, 4);
             if (result.track_id >= 0)
-                classString = classString + " " + std::to_string(result.track_id);
+            {
+                classString += " ID:" + std::to_string(result.track_id);
+            }
 
-            // Get the size of the text box
+            // 计算文本框大小
             cv::Size textSize = cv::getTextSize(classString, cv::FONT_HERSHEY_DUPLEX, 0.75, 1, 0);
-            int top;
+
+            // 动态计算文本框和文字的 Y 坐标，防止物体在图像最顶端时文字出界
+            int box_top, text_top;
             if (result.top > textSize.height + 5)
-                top = result.top - textSize.height - 10;
+            {
+                box_top = result.top - textSize.height - 10;
+                text_top = result.top - 5;
+            }
             else
-                top = result.top + textSize.height + 10;
+            {
+                // 如果物体太靠上，把文字框画在边界框内部
+                box_top = result.top;
+                text_top = result.top + textSize.height + 5;
+            }
 
-            // xmin + t_w, ymin
+            // 绘制文本背景框 (FILLED)
+            cv::rectangle(image, {result.left, box_top}, {result.left + textSize.width, box_top + textSize.height + 10}, color, cv::FILLED);
 
-            // Draw the text box
-            cv::rectangle(image, {result.left, top}, {result.left + textSize.width, result.top}, color, cv::FILLED);
-
-            // Put the class label and confidence text above the bounding box
-            // ymin - 5 if ymin > t_h + 5 else ymin + t_h + 5
-            if (result.top > textSize.height + 5)
-                top = result.top - 5;
-            else
-                top = result.top + textSize.height + 5;
-            cv::putText(image, classString, {result.left, top}, cv::FONT_HERSHEY_DUPLEX, 0.75, cv::Scalar(0, 0, 0), 1, 0);
+            // 绘制文本（使用黑色字体保证在明亮背景上的对比度）
+            cv::putText(image, classString, {result.left, text_top}, cv::FONT_HERSHEY_DUPLEX, 0.75, cv::Scalar(0, 0, 0), 1, 0);
         }
         return image;
     }
