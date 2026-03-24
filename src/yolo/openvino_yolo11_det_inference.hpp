@@ -189,7 +189,7 @@ namespace yolo
             const std::map<int, std::string> &classes = default_classes
         )
         {
-            _classes = classes;
+            this->_classes = classes;
             init_model(model_path, model_input_shape);
         }
 
