@@ -43,7 +43,7 @@ int predict_image()
     yolo::OpenvinoYolo11DetInference inference = {model_path, cv::Size(640, 640)};
 
     // Run inference on the input image
-    auto detect_results = inference.predict(image, confidence_threshold, NMS_threshold);
+    auto detect_results = inference.infer(image, confidence_threshold, NMS_threshold);
     std::cout << "detect_results num = " << detect_results.size() << std::endl;
     std::cout << "detect_results:" << std::endl;
     for (const auto &detect_result : detect_results)
@@ -120,7 +120,7 @@ int predict_video()
         }
 
         // 进行目标检测
-        auto detect_results = inference.predict(frame, confidence_threshold, NMS_threshold);
+        auto detect_results = inference.infer(frame, confidence_threshold, NMS_threshold);
         std::cout << "detect_results size: " << detect_results.size() << std::endl;
 
         // 将检测框绘制到当前帧上
@@ -228,7 +228,7 @@ int track_video()
         }
 
         // 进行目标检测
-        auto detect_results = inference.predict(frame, confidence_threshold, NMS_threshold);
+        auto detect_results = inference.infer(frame, confidence_threshold, NMS_threshold);
         std::cout << "detect_results size: " << detect_results.size() << std::endl;
 
         // 追踪

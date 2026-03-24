@@ -115,12 +115,12 @@ namespace yolo
             init_model(model_path, model_input_shape);
         }
 
-        std::vector<YoloDetectResult> predict(
+        std::vector<YoloDetectResult> infer(
             cv::Mat &image,
             const float confidence_threshold = 0.25,
             const float NMS_threshold = 0.5)
         {
-            // std::cout << "\n---------- start predict ----------" << std::endl;
+            // std::cout << "\n---------- start infer ----------" << std::endl;
 
             float scale_factor = pre_process(image); // Preprocess the input image
             this->_inference_request.infer();          // Run inference
@@ -130,7 +130,7 @@ namespace yolo
                 scale_factor,
                 image.size()); // Postprocess the inference results
 
-            // std::cout << "---------- predict end ----------\n"
+            // std::cout << "---------- infer end ----------\n"
             //           << std::endl;
             return detect_results;
         }
