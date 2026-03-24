@@ -43,22 +43,22 @@ int predict_image()
     yolo::OpenvinoYolo11DetInference inference = {model_path, cv::Size(640, 640)};
 
     // Run inference on the input image
-    auto detect_results = inference.infer(image, confidence_threshold, NMS_threshold);
-    std::cout << "detect_results num = " << detect_results.size() << std::endl;
-    std::cout << "detect_results:" << std::endl;
-    for (const auto &detect_result : detect_results)
+    auto detect_boxes = inference.infer(image, confidence_threshold, NMS_threshold);
+    std::cout << "detect_boxes num = " << detect_boxes.size() << std::endl;
+    std::cout << "detect_boxes:" << std::endl;
+    for (const auto &detect_box : detect_boxes)
     {
-        std::cout << "    class_id: " << detect_result.class_id
-                  << ", class_name: " << detect_result.class_name
-                  << ", confidence: " << detect_result.confidence
-                  << ", box : [" << detect_result.left
-                  << ", " << detect_result.top
-                  << ", " << detect_result.right
-                  << ", " << detect_result.bottom << "]" << std::endl;
+        std::cout << "    class_id: " << detect_box.class_id
+                  << ", class_name: " << detect_box.class_name
+                  << ", confidence: " << detect_box.confidence
+                  << ", box : [" << detect_box.left
+                  << ", " << detect_box.top
+                  << ", " << detect_box.right
+                  << ", " << detect_box.bottom << "]" << std::endl;
     }
 
     cv::Mat draw_image = image.clone();
-    yolo::draw_detected_object(draw_image, detect_results);
+    yolo::draw_detected_object(draw_image, detect_boxes);
 
     // Display the image with the detections
     cv::imshow("draw_image", draw_image);
@@ -120,11 +120,11 @@ int predict_video()
         }
 
         // 进行目标检测
-        auto detect_results = inference.infer(frame, confidence_threshold, NMS_threshold);
-        std::cout << "detect_results size: " << detect_results.size() << std::endl;
+        auto detect_boxes = inference.infer(frame, confidence_threshold, NMS_threshold);
+        std::cout << "detect_boxes size: " << detect_boxes.size() << std::endl;
 
         // 将检测框绘制到当前帧上
-        yolo::draw_detected_object(frame, detect_results);
+        yolo::draw_detected_object(frame, detect_boxes);
 
         // 将处理后的帧写入输出视频文件
         writer.write(frame);
@@ -228,25 +228,25 @@ int track_video()
         }
 
         // 进行目标检测
-        auto detect_results = inference.infer(frame, confidence_threshold, NMS_threshold);
-        std::cout << "detect_results size: " << detect_results.size() << std::endl;
+        auto detect_boxes = inference.infer(frame, confidence_threshold, NMS_threshold);
+        std::cout << "detect_boxes size: " << detect_boxes.size() << std::endl;
 
         // 追踪
         track_objects.clear();
         tracklets.clear();
         lostTracklets.clear();
         int target_id = 0;
-        for (const auto &detect_result : detect_results)
+        for (const auto &detect_box : detect_boxes)
         {
             ByteTrack::Object obj;
             obj.target_id = target_id;
-            obj.class_id = detect_result.class_id;
-            obj.prob = detect_result.confidence;
+            obj.class_id = detect_box.class_id;
+            obj.prob = detect_box.confidence;
             obj.rect = cv::Rect_<float>(
-                static_cast<float>(detect_result.left),
-                static_cast<float>(detect_result.top),
-                static_cast<float>(detect_result.right - detect_result.left),
-                static_cast<float>(detect_result.bottom - detect_result.top));
+                static_cast<float>(detect_box.left),
+                static_cast<float>(detect_box.top),
+                static_cast<float>(detect_box.right - detect_box.left),
+                static_cast<float>(detect_box.bottom - detect_box.top));
             target_id += 1;
             track_objects.push_back(obj);
         }
@@ -256,25 +256,25 @@ int track_video()
         std::cout << "tracklets size: " << tracklets.size() << std::endl;
         std::cout << "lostTracklets size: " << lostTracklets.size() << std::endl;
 
-        std::vector<yolo::YoloDetectResult> detect_results1;
+        std::vector<yolo::YoloDetectBox> detect_boxes1;
         for (const auto &tracklet : tracklets)
         {
             // 创建新数据
-            yolo::YoloDetectResult result;
-            result.track_id = tracklet.track_id;
-            result.class_id = tracklet.class_id;
-            result.class_name = inference._classes[result.class_id];
-            result.confidence = tracklet.score;
-            result.left = tracklet.tlwh[0];
-            result.top = tracklet.tlwh[1];
-            result.right = tracklet.tlwh[0] + tracklet.tlwh[2];
-            result.bottom = tracklet.tlwh[1] + tracklet.tlwh[3];
+            yolo::YoloDetectBox box;
+            box.track_id = tracklet.track_id;
+            box.class_id = tracklet.class_id;
+            box.class_name = inference._classes[box.class_id];
+            box.confidence = tracklet.score;
+            box.left = tracklet.tlwh[0];
+            box.top = tracklet.tlwh[1];
+            box.right = tracklet.tlwh[0] + tracklet.tlwh[2];
+            box.bottom = tracklet.tlwh[1] + tracklet.tlwh[3];
 
-            detect_results1.push_back(result);
+            detect_boxes1.push_back(box);
         }
 
         // 将检测框绘制到当前帧上
-        yolo::draw_detected_object(frame, detect_results1);
+        yolo::draw_detected_object(frame, detect_boxes1);
 
         // 将处理后的帧写入输出视频文件
         writer.write(frame);

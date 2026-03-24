@@ -96,7 +96,7 @@ namespace yolo
         {78, "hair drier"},
         {79, "toothbrush}"}};
 
-    struct YoloDetectResult
+    struct YoloDetectBox
     {
         int class_id;
         std::string class_name;
@@ -193,7 +193,7 @@ namespace yolo
             init_model(model_path, model_input_shape);
         }
 
-        std::vector<YoloDetectResult> infer(
+        std::vector<YoloDetectBox> infer(
             cv::Mat &image,
             const float confidence_threshold = 0.25,
             const float NMS_threshold = 0.5)
@@ -262,7 +262,7 @@ namespace yolo
         }
 
         // Method to postprocess the inference results
-        std::vector<YoloDetectResult> post_process(
+        std::vector<YoloDetectBox> post_process(
             const float confidence_threshold,
             const float NMS_threshold,
             const float scale_factor,
@@ -339,30 +339,30 @@ namespace yolo
             // 【核心修改】这里传入的是带偏移量的 nms_box_list，而不是原来的 box_list
             cv::dnn::NMSBoxes(nms_box_list, confidence_list, confidence_threshold, NMS_threshold, NMS_result);
 
-            std::vector<YoloDetectResult> results;
+            std::vector<YoloDetectBox> boxes;
             // Collect final detections after NMS
             for (int i = 0; i < NMS_result.size(); ++i)
             {
-                YoloDetectResult result;
+                YoloDetectBox box;
                 int id = NMS_result[i];
 
-                result.class_id = class_list[id];
-                result.class_name = this->_classes[result.class_id];
-                result.confidence = confidence_list[id];
+                box.class_id = class_list[id];
+                box.class_name = this->_classes[box.class_id];
+                box.confidence = confidence_list[id];
 
                 // 这里依然使用未加偏移量的真实 box_list[id] 来还原坐标
-                auto box = get_bounding_box(box_list[id], scale_factor, original_shape);
-                result.left = box[0];
-                result.top = box[1];
-                result.right = box[2];
-                result.bottom = box[3];
+                auto _box = get_bounding_box(box_list[id], scale_factor, original_shape);
+                box.left = _box[0];
+                box.top = _box[1];
+                box.right = _box[2];
+                box.bottom = _box[3];
 
-                results.push_back(result);
+                boxes.push_back(box);
             }
 
             // std::cout << "---------- post_process end ----------\n"
             //           << std::endl;
-            return results;
+            return boxes;
         }
 
         // Method to get the bounding box in the correct scale
@@ -404,50 +404,50 @@ namespace yolo
         return cv::Scalar(b, g, r);
     }
 
-    inline cv::Mat draw_detected_object(cv::Mat &image, const std::vector<YoloDetectResult> &detect_results)
+    inline cv::Mat draw_detected_object(cv::Mat &image, const std::vector<YoloDetectBox> &detect_boxes)
     {
-        for (const auto &result : detect_results)
+        for (const auto &box : detect_boxes)
         {
-            const float &confidence = result.confidence;
-            const std::string &class_name = result.class_name;
-            const int &class_id = result.class_id;
+            const float &confidence = box.confidence;
+            const std::string &class_name = box.class_name;
+            const int &class_id = box.class_id;
 
             // 优先使用 track_id 获取颜色。如果未使用追踪器，则退化为按类别区分颜色
-            int id_to_color = (result.track_id >= 0) ? result.track_id : class_id;
+            int id_to_color = (box.track_id >= 0) ? box.track_id : class_id;
             const cv::Scalar color = GetColorForId(id_to_color);
 
             // 绘制目标边界框
-            cv::rectangle(image, cv::Point(result.left, result.top), cv::Point(result.right, result.bottom), color, 2);
+            cv::rectangle(image, cv::Point(box.left, box.top), cv::Point(box.right, box.bottom), color, 2);
 
             // 准备标签文本
             std::string classString = class_name + " " + std::to_string(confidence).substr(0, 4);
-            if (result.track_id >= 0)
+            if (box.track_id >= 0)
             {
-                classString += " ID:" + std::to_string(result.track_id);
+                classString += " ID:" + std::to_string(box.track_id);
             }
 
             // 计算文本框大小
             cv::Size textSize = cv::getTextSize(classString, cv::FONT_HERSHEY_DUPLEX, 0.75, 1, 0);
 
             // 动态计算文本框和文字的 Y 坐标，防止物体在图像最顶端时文字出界
-            int box_top, text_top;
-            if (result.top > textSize.height + 5)
+            int text_box_top, text_top;
+            if (box.top > textSize.height + 5)
             {
-                box_top = result.top - textSize.height - 10;
-                text_top = result.top - 5;
+                text_box_top = box.top - textSize.height - 10;
+                text_top = box.top - 5;
             }
             else
             {
                 // 如果物体太靠上，把文字框画在边界框内部
-                box_top = result.top;
-                text_top = result.top + textSize.height + 5;
+                text_box_top = box.top;
+                text_top = box.top + textSize.height + 5;
             }
 
             // 绘制文本背景框 (FILLED)
-            cv::rectangle(image, {result.left, box_top}, {result.left + textSize.width, box_top + textSize.height + 10}, color, cv::FILLED);
+            cv::rectangle(image, {box.left, text_box_top}, {box.left + textSize.width, text_box_top + textSize.height + 10}, color, cv::FILLED);
 
             // 绘制文本（使用黑色字体保证在明亮背景上的对比度）
-            cv::putText(image, classString, {result.left, text_top}, cv::FONT_HERSHEY_DUPLEX, 0.75, cv::Scalar(0, 0, 0), 1, 0);
+            cv::putText(image, classString, {box.left, text_top}, cv::FONT_HERSHEY_DUPLEX, 0.75, cv::Scalar(0, 0, 0), 1, 0);
         }
         return image;
     }
