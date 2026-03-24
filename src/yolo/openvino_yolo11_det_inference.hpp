@@ -316,7 +316,7 @@ namespace yolo
     };
 
     // 辅助函数：根据固定的 ID 生成稳定且明亮的颜色
-    cv::Scalar GetColorForId(int id)
+    inline cv::Scalar GetColorForId(int id)
     {
         // 使用质数进行简单的哈希计算，放大不同 ID 之间的颜色差异
         // 取模 136 然后加上 120，确保颜色通道值在 120-255 之间（保证明亮度）
@@ -326,7 +326,7 @@ namespace yolo
         return cv::Scalar(b, g, r);
     }
 
-    cv::Mat draw_detected_object(cv::Mat &image, const std::vector<YoloDetectResult> &detect_results)
+    inline cv::Mat draw_detected_object(cv::Mat &image, const std::vector<YoloDetectResult> &detect_results)
     {
         for (const auto &result : detect_results)
         {
