@@ -4,26 +4,18 @@
 #include <fstream>
 #include <filesystem>
 #include <opencv2/opencv.hpp>
+#include <nlohmann/json.hpp>
 #include "src/yolo/openvino_yolo11_det_inference.hpp"
 #include "src/ByteTrack/BYTETracker.h"
+#include "src/global_vars.hpp"
+#include "src/global_funcs.hpp"
 
 namespace fs = std::filesystem;
 
-int predict_image()
+int predict_image(const Global::GereralConfig &config, const std::string &image_path)
 {
-    std::string image_path = "../../../images/bus.jpg";
-    if (!fs::exists(image_path))
-    {
-        std::cout << "image_path: " << image_path << "not exist" << std::endl;
-        return -1;
-    }
-
-    std::string model_path = "../../../models/yolo11s.onnx";
-    if (!fs::exists(model_path))
-    {
-        std::cout << "model_path: " << model_path << "not exist" << std::endl;
-        return -1;
-    }
+    std::string output_path = fs::path(image_path).stem().string() + "--predict.jpg";
+    std::cout << "save predict image to " << output_path << std::endl;
 
     cv::Mat image = cv::imread(image_path);
     if (image.empty())
@@ -35,15 +27,14 @@ int predict_image()
     // cv::imshow("image", image);
     // cv::waitKey(0);
 
-    // Define the confidence and NMS thresholds
-    const float conf_threshold = 0.25;
-    const float nms_threshold = 0.5;
-
     // Initialize the YOLO inference with the specified model and parameters
-    yolo::OpenvinoYolo11DetInference inference = {model_path, cv::Size(640, 640)};
+    yolo::OpenvinoYolo11DetInference inference = {
+        config.detect_config.model_path,
+        config.detect_config.model_input_shape,
+        config.detect_config.classes};
 
     // Run inference on the input image
-    auto detect_boxes = inference.infer(image, conf_threshold, nms_threshold);
+    auto detect_boxes = inference.infer(image, config.detect_config.conf_threshold, config.detect_config.nms_threshold);
     std::cout << "detect_boxes num = " << detect_boxes.size() << std::endl;
     std::cout << "detect_boxes:" << std::endl;
     for (const auto &detect_box : detect_boxes)
@@ -60,6 +51,7 @@ int predict_image()
     cv::Mat draw_image = image.clone();
     yolo::draw_detected_object(draw_image, detect_boxes);
 
+    cv::imwrite(output_path, draw_image);
     // Display the image with the detections
     cv::imshow("draw_image", draw_image);
     cv::waitKey(0);
@@ -67,23 +59,16 @@ int predict_image()
     return 0;
 }
 
-int predict_video()
+int predict_video(const Global::GereralConfig &config, const std::string &video_path)
 {
-    // 请根据实际情况修改视频路径
-    std::string video_path = "../../../videos/traffic monitor-1.mp4";
-    std::string output_path = "../../../videos/traffic monitor-1 predict.mp4";
-    std::string model_path = "../../../models/yolo11s.onnx";
-
-    if (!fs::exists(model_path))
-    {
-        std::cout << "model_path: " << model_path << " not exist" << std::endl;
-        return -1;
-    }
+    std::string output_path = fs::path(video_path).stem().string() + "--predict.mp4";
+    std::cout << "save predict video to " << output_path << std::endl;
 
     // 1. 初始化 YOLO 推理
-    const float conf_threshold = 0.25;
-    const float nms_threshold = 0.5;
-    yolo::OpenvinoYolo11DetInference inference = {model_path, cv::Size(640, 640)};
+    yolo::OpenvinoYolo11DetInference inference = {
+        config.detect_config.model_path,
+        config.detect_config.model_input_shape,
+        config.detect_config.classes};
 
     // 2. 打开输入视频
     cv::VideoCapture cap(video_path);
@@ -120,7 +105,7 @@ int predict_video()
         }
 
         // 进行目标检测
-        auto detect_boxes = inference.infer(frame, conf_threshold, nms_threshold);
+        auto detect_boxes = inference.infer(frame, config.detect_config.conf_threshold, config.detect_config.nms_threshold);
         std::cout << "detect_boxes size: " << detect_boxes.size() << std::endl;
 
         // 将检测框绘制到当前帧上
@@ -154,41 +139,31 @@ int predict_video()
     return 0;
 }
 
-int track_video()
+int track_video(const Global::GereralConfig &config, const std::string &video_path)
 {
-    // 请根据实际情况修改视频路径
-    std::string video_path = "../../../videos/traffic monitor-1.mp4";
-    std::string output_path = "../../../videos/traffic monitor track.mp4";
-    std::string model_path = "../../../models/yolo11s.onnx";
+    std::string output_path = fs::path(video_path).stem().string() + "--track.mp4";
+    std::cout << "save track video to " << output_path << std::endl;
 
-    if (!fs::exists(model_path))
-    {
-        std::cout << "model_path: " << model_path << " not exist" << std::endl;
-        return -1;
-    }
+    // BYTETracker 参数解释
+    // max_time_lost 死亡倒计时，目标丢失（未匹配到检测框）后，在内存中保留等待重新出现的总帧数
+    // track_high_thresh 高分界线，得分大于此值的框为“高分框”，参与第一轮常规匹配。
+    // track_low_thresh 低分界线，得分在此值与高分界线之间的为“低分框”，参与第二轮遮挡修补；低于此值的框直接丢弃。
+    // new_track_thresh 出生门槛，只有得分大于此值的检测框，才能被初始化为全新的追踪目标。
+    // match_thresh 认亲标准，判定检测框与已有轨迹“是否为同一目标”的匹配代价容忍度（通常基于 IoU）。
 
     // 1. 初始化 YOLO 推理
-    const float conf_threshold = 0.05;
-    const float nms_threshold = 0.5;
-    yolo::OpenvinoYolo11DetInference inference = {model_path, cv::Size(640, 640)};
+    yolo::OpenvinoYolo11DetInference inference = {
+        config.detect_config.model_path,
+        config.detect_config.model_input_shape,
+        config.detect_config.classes};
 
     // 2. 初始化追踪器
-    // max_time_lost 死亡倒计时，目标丢失（未匹配到检测框）后，在内存中保留等待重新出现的总帧数
-    int max_time_lost = 60;
-    // track_high_thresh 高分界线，得分大于此值的框为“高分框”，参与第一轮常规匹配。
-    float track_high_thresh = 0.3;
-    // track_low_thresh 低分界线，得分在此值与高分界线之间的为“低分框”，参与第二轮遮挡修补；低于此值的框直接丢弃。
-    float track_low_thresh = 0.1;
-    // new_track_thresh 出生门槛，只有得分大于此值的检测框，才能被初始化为全新的追踪目标。
-    float new_track_thresh = 0.3;
-    // match_thresh 认亲标准，判定检测框与已有轨迹“是否为同一目标”的匹配代价容忍度（通常基于 IoU）。
-    float match_thresh = 0.8;
-    ByteTrack::BYTETracker tracker(
-        max_time_lost,
-        track_high_thresh,
-        track_low_thresh,
-        new_track_thresh,
-        match_thresh);
+    ByteTrack::BYTETracker tracker = {
+        config.track_config.max_time_lost,
+        config.track_config.track_high_thresh,
+        config.track_config.track_low_thresh,
+        config.track_config.new_track_thresh,
+        config.track_config.match_thresh};
     std::vector<ByteTrack::Object> track_objects;
     std::vector<ByteTrack::STrack> tracklets;
     std::vector<ByteTrack::STrack> lostTracklets;
@@ -228,7 +203,7 @@ int track_video()
         }
 
         // 进行目标检测
-        auto detect_boxes = inference.infer(frame, conf_threshold, nms_threshold);
+        auto detect_boxes = inference.infer(frame, config.detect_config.conf_threshold, config.detect_config.nms_threshold);
         std::cout << "detect_boxes size: " << detect_boxes.size() << std::endl;
 
         // 追踪
@@ -308,14 +283,62 @@ int track_video()
 
 int main(int argc, char *argv[])
 {
-    std::cout << "argc: " << argc << std::endl;
-    std::cout << "program name: " << argv[0] << std::endl;
+    std::cout << "============================================================" << std::endl;
+    std::cout << "OpenVINO YOLO C++ Demo help: " << std::endl;
+    std::cout << "    for predict image, usage: " << argv[0] << " predict_image <model_config_path> <image_path>" << std::endl;
+    std::cout << "    for predict video, usage: " << argv[0] << " predict_video <model_config_path> <video_path>" << std::endl;
+    std::cout << "    for track video, usage: " << argv[0] << " track_video <model_config_path> <video_path>" << std::endl;
+    std::cout << "============================================================" << std::endl;
 
-    int res = predict_image();
-    // int res = predict_video();
-    // int res = track_video();
-    if (res != 0)
+    // std::cout << "argc: " << argc << std::endl;
+    // std::cout << "program name: " << argv[0] << std::endl;
+    std::vector<std::string> args(argv, argv + argc);
+
+    if (args.size() < 4)
+    {
+        std::cout << "Error: Insufficient arguments provided." << std::endl;
         return -1;
+    }
 
-    return 0;
+    std::string mode = args[1];
+    std::string config_path = args[2];
+    std::string image_path = args[3];
+
+    std::cout << "mode: " << mode << std::endl;
+    std::cout << "config_path: " << config_path << std::endl;
+    std::cout << "image_path: " << image_path << std::endl;
+
+    if (!fs::exists(config_path))
+    {
+        std::cout << "config_path: " << config_path << " not exist" << std::endl;
+        return -1;
+    }
+    auto config = Global::read_config(config_path);
+
+    if (!fs::exists(image_path))
+    {
+        std::cout << "image_path/video_path: " << image_path << " not exist" << std::endl;
+        return -1;
+    }
+
+    int res = 0;
+    if (mode == "predict_image")
+    {
+        res = predict_image(config, image_path);
+    }
+    else if (mode == "predict_video")
+    {
+        res = predict_video(config, image_path);
+    }
+    else if (mode == "track_video")
+    {
+        res = track_video(config, image_path);
+    }
+    else
+    {
+        res = -1;
+        std::cout << "Error: Invalid mode provided." << std::endl;
+    }
+
+    return res;
 }

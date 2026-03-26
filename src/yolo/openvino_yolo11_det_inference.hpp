@@ -7,9 +7,12 @@
 #include <map>
 #include <array>
 #include <random>
+#include <filesystem>
 #include <opencv2/opencv.hpp>
 #include <openvino/openvino.hpp>
-#include "common.hpp"
+#include "../global_vars.hpp"
+
+namespace fs = std::filesystem;
 
 namespace yolo
 {
@@ -36,12 +39,12 @@ namespace yolo
         cv::Size _model_output_shape; // Output shape of the model (width, height)
 
     public:
-        std::map<int, std::string> _classes = common::default_classes;
+        std::map<int, std::string> _classes = Global::default_classes;
         void init_model(
             const std::string &model_path,
             const cv::Size &model_input_shape = cv::Size(640, 640))
         {
-            // std::cout << "\n---------- start init_model ----------" << std::endl;
+            std::cout << "\n---------- start init_model ----------" << std::endl;
 
             ov::Core core;                                                  // OpenVINO core object
             std::shared_ptr<ov::Model> model = core.read_model(model_path); // Read the model from file
@@ -95,17 +98,22 @@ namespace yolo
             this->_compiled_model = core.compile_model(model, "AUTO");
             this->_inference_request = this->_compiled_model.create_infer_request(); // Create inference request
 
-            // std::cout << "---------- init_model end ----------\n"
-            //           << std::endl;
+            std::cout << "---------- init_model end ----------\n"
+                      << std::endl;
         }
 
         // Constructor to initialize the model with specified input shape
         OpenvinoYolo11DetInference(
             const std::string &model_path,
             const cv::Size model_input_shape,
-            const std::map<int, std::string> &classes = common::default_classes
+            const std::map<int, std::string> &classes = Global::default_classes
         )
         {
+            if (!fs::exists(model_path))
+            {
+                throw std::invalid_argument("Model file" + model_path + " does not exist");
+            }
+
             this->_classes = classes;
             init_model(model_path, model_input_shape);
         }

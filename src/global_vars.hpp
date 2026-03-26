@@ -1,12 +1,13 @@
-#ifndef COMMON_HPP
-#define COMMON_HPP
+#ifndef GLOBAL_VARS_HPP
+#define GLOBAL_VARS_HPP
 #pragma once
 
 #include <string>
 #include <vector>
 #include <map>
+#include <opencv2/opencv.hpp>
 
-namespace common
+namespace Global
 {
     inline std::map<int, std::string> default_classes{
         {0, "person"},
@@ -89,6 +90,31 @@ namespace common
         {77, "teddy bear"},
         {78, "hair drier"},
         {79, "toothbrush}"}};
+
+    struct DetectConfig
+    {
+        std::string model_path = "";
+        float conf_threshold = 0.25;
+        float nms_threshold = 0.5;
+        // [width, height]
+        cv::Size model_input_shape = cv::Size(640, 640);
+        std::map<int, std::string> classes = default_classes;
+    };
+
+    struct TrackConfig
+    {
+        int max_time_lost = 60;
+        float track_high_thresh = 0.3;
+        float track_low_thresh = 0.1;
+        float new_track_thresh = 0.3;
+        float match_thresh = 0.8;
+    };
+
+    struct GereralConfig
+    {
+        DetectConfig detect_config;
+        TrackConfig track_config;
+    };
 }
 
-#endif // COMMON_HPP
+#endif // GLOBAL_VARS_HPP

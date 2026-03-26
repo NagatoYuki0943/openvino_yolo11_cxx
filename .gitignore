@@ -49,3 +49,6 @@ videos/*
 
 # debug information files
 *.dwo
+
+3rdparty/*
+!3rdparty/.gitkeep

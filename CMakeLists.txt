@@ -81,7 +81,7 @@ add_executable(main ${SOURCES})
 
 # 添加头文件搜索路径
 # 只需要添加你自己项目内部的 include 文件夹
-target_include_directories(main PRIVATE include)
+target_include_directories(main PRIVATE 3rdparty)
 
 # 添加链接目录
 # 现代 CMake 推荐：只要 link 了目标，头文件和编译选项会自动传递
