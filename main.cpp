@@ -49,7 +49,7 @@ int predict_image(const Global::GereralConfig &config, const std::string &image_
     }
 
     cv::Mat draw_image = image.clone();
-    yolo::draw_detected_object(draw_image, detect_boxes);
+    Global::draw_detected_object(draw_image, detect_boxes);
 
     cv::imwrite(output_path, draw_image);
     std::cout << "Image processing complete. Output saved to: " << output_path << std::endl;
@@ -111,7 +111,7 @@ int predict_video(const Global::GereralConfig &config, const std::string &video_
         std::cout << "detect_boxes size: " << detect_boxes.size() << std::endl;
 
         // 将检测框绘制到当前帧上
-        yolo::draw_detected_object(frame, detect_boxes);
+        Global::draw_detected_object(frame, detect_boxes);
 
         // 将处理后的帧写入输出视频文件
         writer.write(frame);
@@ -251,7 +251,7 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
         }
 
         // 将检测框绘制到当前帧上
-        yolo::draw_detected_object(frame, detect_boxes1);
+        Global::draw_detected_object(frame, detect_boxes1);
 
         // 将处理后的帧写入输出视频文件
         writer.write(frame);
