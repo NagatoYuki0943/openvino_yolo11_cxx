@@ -1,5 +1,5 @@
-#ifndef OPENVINO_YOLO11_DET_INFER_HPP
-#define OPENVINO_YOLO11_DET_INFER_HPP
+#ifndef OPENVINO_YOLO11_DET_INFERENCE_HPP
+#define OPENVINO_YOLO11_DET_INFERENCE_HPP
 #pragma once
 
 #include <string>
@@ -214,7 +214,7 @@ namespace yolo
                 // .colRange(4, transposed_outputs.cols)：跳过前 4 个位置坐标参数，截取第 4 到第 83 行。这 80 个值就是该框在 80 个分类上的概率得分。
                 const cv::Mat _classesscores = transposed_outputs.row(i).colRange(4, transposed_outputs.cols);
 
-                // 找出得分最高的值赋给 score，并把该得分的**索引（类别 ID）**赋给 class_id.y
+                // 找出得分最高的值赋给 score，并把该得分的**索引（类别 ID）**赋给 class_id.x
                 cv::Point class_id;
                 double score;
                 cv::minMaxLoc(_classesscores, nullptr, &score, nullptr, &class_id); // Find the class with the highest score
@@ -240,8 +240,8 @@ namespace yolo
 
                     // 2. 生成带偏移量的框（仅用于送入 NMS 函数）
                     cv::Rect nms_box;
-                    nms_box.x = box.x + class_id.y * max_wh;
-                    nms_box.y = box.y + class_id.y * max_wh;
+                    nms_box.x = box.x + class_id.x * max_wh;
+                    nms_box.y = box.y + class_id.x * max_wh;
                     nms_box.width = box.width;
                     nms_box.height = box.height;
                     nms_box_list.push_back(nms_box);
@@ -309,4 +309,4 @@ namespace yolo
 
 } // namespace yolo
 
-#endif // OPENVINO_YOLO11_DET_INFER_HPP
+#endif // OPENVINO_YOLO11_DET_INFERENCE_HPP
