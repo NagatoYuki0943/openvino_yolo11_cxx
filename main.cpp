@@ -166,9 +166,6 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
         config.track_config.track_low_thresh,
         config.track_config.new_track_thresh,
         config.track_config.match_thresh};
-    std::vector<ByteTrack::Object> track_objects;
-    std::vector<ByteTrack::STrack> tracklets;
-    std::vector<ByteTrack::STrack> lostTracklets;
 
     // 3. 打开输入视频
     cv::VideoCapture cap(video_path);
@@ -209,9 +206,9 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
         std::cout << "detect_boxes size: " << detect_boxes.size() << std::endl;
 
         // 追踪
-        track_objects.clear();
-        tracklets.clear();
-        lostTracklets.clear();
+        std::vector<ByteTrack::Object> track_objects = {};
+        std::vector<ByteTrack::STrack> tracklets = {};
+        std::vector<ByteTrack::STrack> lostTracklets = {};
         int target_id = 0;
         for (const auto &detect_box : detect_boxes)
         {

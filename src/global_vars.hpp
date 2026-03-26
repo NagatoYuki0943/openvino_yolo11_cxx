@@ -11,14 +11,14 @@ namespace Global
 {
     struct YoloDetectBox
     {
-        int class_id;
-        std::string class_name;
-        float confidence;
-        int left;
-        int top;
-        int right;
-        int bottom;
-        int track_id = -1;
+        int class_id;           // 类别 id
+        std::string class_name; // 类别名称
+        float confidence;       // 置信度
+        int left;               // 左上角 x 坐标
+        int top;                // 左上角 y 坐标
+        int right;              // 右下角 x 坐标
+        int bottom;             // 右下角 y 坐标
+        int track_id = -1;      // 追踪 id, -1 代表没有追踪
     };
 
     inline std::map<int, std::string> default_classes{
