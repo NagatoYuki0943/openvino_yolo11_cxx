@@ -5,10 +5,10 @@
 #include <filesystem>
 #include <opencv2/opencv.hpp>
 #include <nlohmann/json.hpp>
-#include "src/yolo/openvino_yolo11_det_inference.hpp"
-#include "src/ByteTrack/BYTETracker.h"
-#include "src/global_vars.hpp"
-#include "src/global_funcs.hpp"
+#include "yolo/openvino_yolo11_det_inference.hpp"
+#include "ByteTrack/BYTETracker.h"
+#include "global_vars.hpp"
+#include "global_funcs.hpp"
 
 namespace fs = std::filesystem;
 
