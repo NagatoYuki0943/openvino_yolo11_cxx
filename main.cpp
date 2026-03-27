@@ -7,12 +7,13 @@
 #include <nlohmann/json.hpp>
 #include "yolo/openvino_yolo11_det_inference.hpp"
 #include "ByteTrack/BYTETracker.h"
+#include "point_polygon_test.hpp"
 #include "global_vars.hpp"
 #include "global_funcs.hpp"
 
 namespace fs = std::filesystem;
 
-int predict_image(const Global::GereralConfig &config, const std::string &image_path)
+int predict_image(const Global::GereralConfig &config, const std::string &image_path, bool filter_boxes_in_polygon = false)
 {
     std::string output_path = fs::path(image_path).stem().string() + "--predict.jpg";
     std::cout << "save predict image to " << output_path << std::endl;
@@ -49,6 +50,37 @@ int predict_image(const Global::GereralConfig &config, const std::string &image_
     }
 
     cv::Mat draw_image = image.clone();
+
+    // 过滤出在多边形内部的目标
+    if (filter_boxes_in_polygon)
+    {
+        // 创建一个多边形,每个点都是 (x, y), 左上角是原点
+        std::vector<cv::Point> polygon = {
+            cv::Point(0, 200),
+            cv::Point(600, 700),
+            cv::Point(50, 1000),
+            cv::Point(250, 800),
+            cv::Point(100, 700)};
+        auto inside_indices = point_polygon_test::filter_boxes_in_polygon(detect_boxes, polygon);
+
+        std::cout << "inside_indices size: " << inside_indices.size() << std::endl;
+        std::cout << "inside_indices: [";
+        for (int i : inside_indices)
+        {
+            std::cout << i << ", ";
+        }
+        std::cout << "]" << std::endl;
+
+        // 绘制多边形
+        point_polygon_test::draw_closed_polygon(draw_image, polygon);
+
+        std::vector<Global::YoloDetectBox> filtered_boxes;
+        filtered_boxes.reserve(inside_indices.size());
+        for (int orig_idx : inside_indices)
+            filtered_boxes.push_back(std::move(detect_boxes[orig_idx]));
+        detect_boxes = std::move(filtered_boxes);
+    }
+
     Global::draw_detected_object(draw_image, detect_boxes);
 
     cv::imwrite(output_path, draw_image);
@@ -287,6 +319,7 @@ int main(int argc, char *argv[])
     std::cout << "    for predict image, usage: " << argv[0] << " predict_image <model_config_path> <image_path>" << std::endl;
     std::cout << "    for predict video, usage: " << argv[0] << " predict_video <model_config_path> <video_path>" << std::endl;
     std::cout << "    for track video, usage: " << argv[0] << " track_video <model_config_path> <video_path>" << std::endl;
+    std::cout << "    for filter boxes in polygon(default box), usage: " << argv[0] << " filter_boxes <model_config_path> <image_path>" << std::endl;
     std::cout << "============================================================" << std::endl;
 
     // std::cout << "argc: " << argc << std::endl;
@@ -332,6 +365,11 @@ int main(int argc, char *argv[])
     else if (mode == "track_video")
     {
         res = track_video(config, image_path);
+    }
+    else if (mode == "filter_boxes")
+    {
+        point_polygon_test::test_filter_boxes_in_polygon();
+        res = predict_image(config, image_path, true);
     }
     else
     {

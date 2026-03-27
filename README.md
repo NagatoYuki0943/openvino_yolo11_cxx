@@ -15,23 +15,28 @@
 
 例子
 
-```sh
+```pwsh
 ============================================================
 OpenVINO YOLO C++ Demo help:
-    for predict image, usage: ./rknn_yolo11_demo predict_image <model_config_path> <image_path>
-    for predict video, usage: ./rknn_yolo11_demo predict_video <model_config_path> <video_path>
-    for track video, usage: ./rknn_yolo11_demo track_video <model_config_path> <video_path>
+    for predict image, usage: .\main.exe predict_image <model_config_path> <image_path>
+    for predict video, usage: .\main.exe predict_video <model_config_path> <video_path>
+    for track video, usage: .\main.exe track_video <model_config_path> <video_path>
+    for filter boxes in polygon(default box), usage: .\main.exe filter_boxes <model_config_path> <image_path>
 ============================================================
 
-# for predict image, usage:
+# for predict image
 # 执行后会在执行目录生成 bus--predict.jpg
-./main predict_image models/metadata.json images/bus.jpg
+.\main.exe predict_image ..\..\..\models\metadata.json ..\..\..\images\bus.jpg
 
-# for predict video, usage:
+# for predict video
 # 执行后会在执行目录生成 MOT16-08-raw--predict.mp4
-./main predict_video models/metadata.json videos/MOT16-08-raw.mp4
+.\main.exe predict_video ..\..\..\models\metadata.json ..\..\..\videos\MOT16-08-raw.mp4
 
-# for track video, usage:
+# for track video
 # 执行后会在执行目录生成 MOT16-08-raw--track.mp4
-./main track_video models/metadata.json videos/MOT16-08-raw.mp4
+.\main.exe track_video ..\..\..\models\metadata.json ..\..\..\videos\MOT16-08-raw.mp4
+
+# for filter boxes
+# 执行后会在执行目录生成 test_filter_boxes_in_polygon.jpg, bus--predict.jpg
+.\main.exe filter_boxes ..\..\..\models\metadata.json ..\..\..\images\bus.jpg
 ```
