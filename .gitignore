@@ -8,6 +8,10 @@ models/*
 !models/metadata.json
 !models/yolo11n.onnx
 
+videos/*
+!videos/MOT16-08-raw.mp4
+!videos/traffic_monitor-00.00.31.250-00.02.30.000.mp4
+
 # Prerequisites
 *.d
 
