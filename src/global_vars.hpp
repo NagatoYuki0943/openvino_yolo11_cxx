@@ -116,9 +116,9 @@ namespace Global
     struct TrackConfig
     {
         int max_time_lost = 60;
-        float track_high_thresh = 0.3;
+        float track_high_thresh = 0.25;
         float track_low_thresh = 0.1;
-        float new_track_thresh = 0.3;
+        float new_track_thresh = 0.25;
         float match_thresh = 0.8;
     };
 
