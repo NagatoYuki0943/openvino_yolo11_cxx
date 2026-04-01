@@ -44,24 +44,6 @@ namespace yolo
 
             int width, height;
 
-            // Get input shape from the model
-            const std::vector<ov::Output<ov::Node>> inputs = model->inputs();
-            const ov::Shape input_shape = inputs[0].get_shape();
-            // std::cout << "output_shape: " << input_shape << std::endl;
-            height = input_shape[2];
-            width = input_shape[3];
-            this->_model_input_shape = cv::Size(width, height);
-            // std::cout << "_model_input_shape shape(wxh): " << this->_model_input_shape << std::endl;
-
-            // Get output shape from the model
-            const std::vector<ov::Output<ov::Node>> outputs = model->outputs();
-            const ov::Shape output_shape = outputs[0].get_shape();
-            // std::cout << "output_shape: " << output_shape << std::endl;
-            height = output_shape[1];
-            width = output_shape[2];
-            this->_model_output_shape = cv::Size(width, height);
-            // std::cout << "_model_output_shape shape(wxh): " << this->_model_output_shape << std::endl;
-
             // pre_process setup for the model
             ov::preprocess::PrePostProcessor ppp = ov::preprocess::PrePostProcessor(model);
             ppp.input()
@@ -78,10 +60,35 @@ namespace yolo
             ppp.input()
                 .model()
                 .set_layout("NCHW");
+            // 1. 告诉 OpenVINO，模型原始的输出布局是 [1, 84, 8400]，即 NCH
+            ppp.output()
+                .model()
+                .set_layout("NCH");
+            // 2. 告诉 OpenVINO，我期望最终拿到的 C++ 内存布局是 [1, 8400, 84]，即 NHC
             ppp.output()
                 .tensor()
+                .set_layout("NHC")
                 .set_element_type(ov::element::f32);
+
             model = ppp.build(); // Build the preprocessed model
+
+            // Get input shape from the model
+            const std::vector<ov::Output<ov::Node>> inputs = model->inputs();
+            const ov::Shape input_shape = inputs[0].get_shape();
+            std::cout << "ov input_shape: " << input_shape << std::endl;
+            height = input_shape[1];
+            width = input_shape[2];
+            this->_model_input_shape = cv::Size(width, height);
+            std::cout << "cv _model_input_shape shape(wxh): " << this->_model_input_shape << std::endl;
+
+            // Get output shape from the model
+            const std::vector<ov::Output<ov::Node>> outputs = model->outputs();
+            const ov::Shape output_shape = outputs[0].get_shape();
+            std::cout << "ov output_shape: " << output_shape << std::endl;
+            height = output_shape[1];
+            width = output_shape[2];
+            this->_model_output_shape = cv::Size(width, height);
+            std::cout << "cv _model_output_shape shape(wxh): " << this->_model_output_shape << std::endl;
 
             // Compile the model for inference
             this->_compiled_model = core.compile_model(model, "AUTO");
@@ -95,8 +102,7 @@ namespace yolo
         OpenvinoYolo11DetInference(
             const std::string &model_path,
             const cv::Size model_input_shape,
-            const std::map<int, std::string> &classes = Global::default_classes
-        )
+            const std::map<int, std::string> &classes = Global::default_classes)
         {
             if (!fs::exists(model_path))
             {
@@ -189,30 +195,32 @@ namespace yolo
             std::vector<cv::Rect> box_list;
             std::vector<cv::Rect> nms_box_list; // 专门用于 NMS 的带偏移量框列表
 
-            // 1. 获取原始的 84 x 8400 矩阵
+            // 1. (原始模型)获取原始的 84 x 8400 矩阵
             // 8400 列：代表模型预测出的 8400 个候选框（Anchors）。
             // 84 行：代表每个候选框的 84 个属性。前 4 个是中心点坐标和宽高 (cx,cy,w,h)，后 80 个是该框属于 80 个类别的得分。
+            // 修改:
+            //      (1). 可以通过下方的转置将其转为 8400 x 84 矩阵。
+            //      (2). 通过模型初始化 ppp 来直接修改输出格式
             const float *detections = this->_inference_request.get_output_tensor().data<const float>();
             // Create OpenCV imagerix from output tensor
             // clone 是因为 cv::Mat 使用指针创建 Mat 时没有拷贝数据, 所以这里需要 clone 一份数据
-            const cv::Mat detection_outputs = cv::Mat(this->_model_output_shape, CV_32F, (float *)detections).clone();
+            const cv::Mat detection_outputs = cv::Mat(this->_model_output_shape, CV_32F, const_cast<float *>(detections)).clone();
             // std::cout << "detection_outputs shape(wxh): " << detection_outputs.size() << std::endl;
 
             // 设定一个足够大的常量作为偏移基数 (通常 YOLO 输入是 640 或 1280，4096 绝对够用)
             const int max_wh = 4096;
 
             // 2. 将其转置为 8400 x 84 (行数变成 8400，列数变成 84)
-            cv::Mat transposed_outputs;
-            cv::transpose(detection_outputs, transposed_outputs);
-            // std::cout << "transposed_outputs shape(wxh): " << transposed_outputs.size() << std::endl;
+            // cv::Mat detection_outputs = detection_outputs.t();
+            // std::cout << "detection_outputs shape(wxh): " << detection_outputs.size() << std::endl;
 
             // Iterate over detections and collect class IDs, confidence scores, and bounding boxes
             // 循环 8400 次，每次处理一列（即一个预测框）
-            for (int i = 0; i < transposed_outputs.rows; ++i)
+            for (int i = 0; i < detection_outputs.rows; ++i)
             {
-                // transposed_outputs.row(i)：取第 i 个预测框的所有数据（84个值）。
-                // .colRange(4, transposed_outputs.cols)：跳过前 4 个位置坐标参数，截取第 4 到第 83 行。这 80 个值就是该框在 80 个分类上的概率得分。
-                const cv::Mat _classesscores = transposed_outputs.row(i).colRange(4, transposed_outputs.cols);
+                // detection_outputs.row(i)：取第 i 个预测框的所有数据（84个值）。
+                // .colRange(4, detection_outputs.cols)：跳过前 4 个位置坐标参数，截取第 4 到第 83 行。这 80 个值就是该框在 80 个分类上的概率得分。
+                const cv::Mat _classesscores = detection_outputs.row(i).colRange(4, detection_outputs.cols);
 
                 // 找出得分最高的值赋给 score，并把该得分的**索引（类别 ID）**赋给 class_id.x
                 cv::Point class_id;
@@ -225,10 +233,10 @@ namespace yolo
                     class_list.push_back(class_id.x);
                     confidence_list.push_back(score);
 
-                    const float cx = transposed_outputs.at<float>(i, 0);
-                    const float cy = transposed_outputs.at<float>(i, 1);
-                    const float w = transposed_outputs.at<float>(i, 2);
-                    const float h = transposed_outputs.at<float>(i, 3);
+                    const float cx = detection_outputs.at<float>(i, 0);
+                    const float cy = detection_outputs.at<float>(i, 1);
+                    const float w = detection_outputs.at<float>(i, 2);
+                    const float h = detection_outputs.at<float>(i, 3);
 
                     // 1. 保存原始真实的预测框（用于最终结果提取和绘制）
                     cv::Rect box;
