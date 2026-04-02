@@ -121,6 +121,7 @@ namespace Global
         float track_low_thresh = 0.1;
         float new_track_thresh = 0.25;
         float match_thresh = 0.8;
+        int min_hits = 1;
     };
 
     struct GereralConfig

@@ -198,6 +198,7 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
     //  什么时候应该调低（比如 0.4 ~ 0.5）？
     //      画面极其拥挤密集时（例如密集的车流、十字路口的人群）。
     //      原因： 当多个目标靠得非常近时，如果追踪器太宽容，很容易发生 ID 劫持（比如 A 车和 B 车并排，追踪器把 A 的 ID 错误地连到了 B 的检测框上）。降低阈值能逼迫追踪器变得“严谨”，只认准那个跟历史轨迹重合度最高的目标。
+    // min_hits 连续追踪到多少帧才输出
 
     // 2. 初始化追踪器
     std::map<int, ByteTrack::BYTETracker> trackers;
@@ -209,7 +210,8 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
             config.track_config.track_high_thresh,
             config.track_config.track_low_thresh,
             config.track_config.new_track_thresh,
-            config.track_config.match_thresh};
+            config.track_config.match_thresh,
+            config.track_config.min_hits};
     }
     else
     {
@@ -221,7 +223,8 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
                 config.track_config.track_high_thresh,
                 config.track_config.track_low_thresh,
                 config.track_config.new_track_thresh,
-                config.track_config.match_thresh};
+                config.track_config.match_thresh,
+                config.track_config.min_hits};
         }
     }
     std::cout << "trackers size: " << trackers.size() << std::endl;

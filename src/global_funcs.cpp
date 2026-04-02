@@ -62,6 +62,8 @@ namespace Global
                     config.track_config.new_track_thresh = t["new_track_thresh"].get<float>();
                 if (t.contains("match_thresh"))
                     config.track_config.match_thresh = t["match_thresh"].get<float>();
+                if (t.contains("min_hits"))
+                    config.track_config.min_hits = t["min_hits"].get<int>();
             }
 
             return config;
