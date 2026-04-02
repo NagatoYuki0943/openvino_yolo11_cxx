@@ -264,8 +264,8 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
         std::cout << "detect_boxes size: " << detect_boxes.size() << std::endl;
 
         // 追踪
-        std::vector<Global::YoloDetectBox> detect_boxes1;
-        detect_boxes1.reserve(detect_boxes.size());
+        std::vector<Global::YoloDetectBox> track_boxes;
+        track_boxes.reserve(detect_boxes.size());
         if (!enable_multi_class_tracking)
         {
             auto &tracker = trackers[0];
@@ -312,7 +312,7 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
                 // auto box = detect_boxes[tracklet.target_id];
                 // box.track_id = tracklet.track_id;
 
-                detect_boxes1.push_back(box);
+                track_boxes.push_back(box);
             }
         }
         else
@@ -382,14 +382,14 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
                     // auto box = detect_boxes[tracklet.target_id];
                     // box.track_id = tracklet.track_id;
 
-                    detect_boxes1.push_back(box);
+                    track_boxes.push_back(box);
                 }
             }
             std::cout << std::endl;
         }
 
         // 将检测框绘制到当前帧上
-        Global::draw_detected_object(frame, detect_boxes1);
+        Global::draw_detected_object(frame, track_boxes);
 
         // 将处理后的帧写入输出视频文件
         writer.write(frame);
