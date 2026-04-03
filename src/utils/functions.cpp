@@ -65,6 +65,11 @@ namespace detect_utils
         }
     }
 
+    /**
+     * @brief 根据类别 ID 将检测结果进行分类
+     * @param detect_boxes 检测结果
+     * @return 按类别 ID 分组的 box ID
+     */
     std::map<int, std::vector<int>> classify_box_id_by_class(const std::vector<Global::YoloDetectBox> &detect_boxes)
     {
         std::map<int, std::vector<int>> class_map;
@@ -73,6 +78,36 @@ namespace detect_utils
             class_map[detect_boxes[i].class_id].push_back(i);
         }
         return class_map;
+    }
+
+    /**
+     * @brief 根据类别 ID 将检测结果进行分类
+     * @param detect_boxes 检测结果
+     * @return 按类别 ID 分组的检测结果
+     */
+    std::map<int, std::vector<Global::YoloDetectBox>> classify_box_by_class(const std::vector<Global::YoloDetectBox> &detect_boxes)
+    {
+        std::map<int, std::vector<Global::YoloDetectBox>> class_boxes;
+        for (const auto &box : detect_boxes)
+        {
+            class_boxes[box.class_id].push_back(box);
+        }
+        return class_boxes;
+    }
+
+    /**
+     * @brief 合并同类别检测结果
+     * @param class_boxes 按类别 ID 分组的检测结果
+     * @return 合并后的检测结果
+     */
+    std::vector<Global::YoloDetectBox> merge_classified_boxes(const std::map<int, std::vector<Global::YoloDetectBox>> &class_boxes)
+    {
+        std::vector<Global::YoloDetectBox> merged_boxes;
+        for (const auto &[class_id, boxes]: class_boxes)
+        {
+            merged_boxes.insert(merged_boxes.end(), class_boxes.begin(), class_boxes.end());
+        }
+        return merged_boxes;
     }
 
     /**

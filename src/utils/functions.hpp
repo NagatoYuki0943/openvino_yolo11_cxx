@@ -16,7 +16,26 @@ namespace detect_utils
 
     void draw_detected_object(cv::Mat &image, const std::vector<Global::YoloDetectBox> &detect_boxes);
 
+    /**
+     * @brief 根据类别 ID 将检测结果进行分类
+     * @param detect_boxes 检测结果
+     * @return 按类别 ID 分组的 box ID
+     */
     std::map<int, std::vector<int>> classify_box_id_by_class(const std::vector<Global::YoloDetectBox> &detect_boxes);
+
+    /**
+     * @brief 根据类别 ID 将检测结果进行分类
+     * @param detect_boxes 检测结果
+     * @return 按类别 ID 分组的检测结果
+     */
+    std::map<int, std::vector<Global::YoloDetectBox>> classify_box_by_class(const std::vector<Global::YoloDetectBox> &detect_boxes);
+
+    /**
+     * @brief 合并同类别检测结果
+     * @param class_boxes 按类别 ID 分组的检测结果
+     * @return 合并后的检测结果
+     */
+    std::vector<Global::YoloDetectBox> merge_classified_boxes(const std::map<int, std::vector<Global::YoloDetectBox>> &class_boxes);
 
     /**
      * @brief 计算两个 Box 之间的 IoU (Intersection over Union)
