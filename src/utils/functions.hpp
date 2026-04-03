@@ -16,7 +16,7 @@ namespace detect_utils
 
     void draw_detected_object(cv::Mat &image, const std::vector<Global::YoloDetectBox> &detect_boxes);
 
-    std::map<int, std::vector<int>> classify_boxed_by_class(const std::vector<Global::YoloDetectBox> &detect_boxes);
+    std::map<int, std::vector<int>> classify_box_id_by_class(const std::vector<Global::YoloDetectBox> &detect_boxes);
 
     /**
      * @brief 计算两个 Box 之间的 IoU (Intersection over Union)

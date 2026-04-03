@@ -310,7 +310,7 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
         else
         {
             // 将检测结果按照类别进行分类
-            auto class_map = detect_utils::classify_boxed_by_class(detect_boxes);
+            auto class_map = detect_utils::classify_box_id_by_class(detect_boxes);
 
             for (const auto &[class_id, detect_indexes] : class_map)
             {

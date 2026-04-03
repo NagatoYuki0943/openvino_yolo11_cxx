@@ -65,7 +65,7 @@ namespace detect_utils
         }
     }
 
-    std::map<int, std::vector<int>> classify_boxed_by_class(const std::vector<Global::YoloDetectBox> &detect_boxes)
+    std::map<int, std::vector<int>> classify_box_id_by_class(const std::vector<Global::YoloDetectBox> &detect_boxes)
     {
         std::map<int, std::vector<int>> class_map;
         for (int i = 0; i < detect_boxes.size(); i++)
