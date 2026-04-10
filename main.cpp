@@ -312,21 +312,21 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
             // 将检测结果按照类别进行分类
             auto class_map = detect_utils::classify_box_id_by_class(detect_boxes);
 
-            for (const auto &[class_id, detect_indexes] : class_map)
+            for (auto &[class_id, tracker] : trackers)
             {
+
+                std::vector<int> detect_indexes = {};
+                if (class_map.find(class_id) != class_map.end())
+                {
+                    detect_indexes = class_map.at(class_id);
+                }
+
                 std::cout << "class_id: " << class_id << " detect_indexes: [";
                 for (int index : detect_indexes)
                 {
                     std::cout << index << ", ";
                 }
                 std::cout << "]" << std::endl;
-
-                if (trackers.find(class_id) == trackers.end())
-                {
-                    std::cout << "Warning: Unknown class_id " << class_id << " detected!" << std::endl;
-                    continue; // 跳过未配置的类别
-                }
-                auto &tracker = trackers.at(class_id);
 
                 std::vector<ByteTrack::Object> track_objects = {};
                 std::vector<ByteTrack::STrack> tracklets = {};
