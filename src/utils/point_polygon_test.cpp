@@ -25,6 +25,7 @@ namespace detect_utils
         if (polygon.size() < 3)
         {
             std::vector<int> index_list;
+            index_list.reserve(boxes.size());
             for (int i = 0; i < boxes.size(); i++)
             {
                 index_list.push_back(i);
