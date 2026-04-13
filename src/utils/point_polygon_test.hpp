@@ -5,11 +5,21 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <opencv2/opencv.hpp> // 引入 OpenCV 头文件
+#include <opencv2/opencv.hpp>
 #include "../global_vars.hpp"
 
 namespace detect_utils
 {
+
+    /**
+     * @brief 在多边形区域内过滤 YOLO 检测框
+     * @param boxes YOLO 检测框的集合 (std::vector<Global::YoloDetectBox>)
+     * @param polygon 表示多边形顶点的集合 (std::vector<cv::Point>)
+     * @return 在多边形内的检测框 index 集合 (std::vector<int>)
+     */
+    std::vector<int> filter_boxe_ids_in_polygon(
+        const std::vector<Global::YoloDetectBox> &boxes,
+        const std::vector<cv::Point> &polygon);
 
     /**
      * @brief 在多边形区域内过滤 YOLO 检测框
