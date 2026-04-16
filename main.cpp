@@ -184,7 +184,7 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
     // track_high_thresh 高分界线，得分大于此值的框为“高分框”，参与第一轮常规匹配。
     // track_low_thresh 低分界线，得分在此值与高分界线之间的为“低分框”，参与第二轮遮挡修补；低于此值的框直接丢弃。
     // new_track_thresh 出生门槛，只有得分大于此值的检测框，才能被初始化为全新的追踪目标。
-    // match_thresh 认亲标准，判定检测框与已有轨迹“是否为同一目标”的匹配代价容忍度（通常基于 IoU）。越高，越容易匹配；越低，越难匹配。
+    // match_thresh/low_match_thresh/unconfirmed_match_thresh 认亲标准，判定检测框与已有轨迹“是否为同一目标”的匹配代价容忍度（通常基于 IoU）。越高，越容易匹配；越低，越难匹配。
     //  什么时候应该调高（比如 0.8 ~ 0.9）？
     //      视频帧率（FPS）较低时。
     //      目标运动速度极快时。
@@ -192,7 +192,10 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
     //  什么时候应该调低（比如 0.4 ~ 0.5）？
     //      画面极其拥挤密集时（例如密集的车流、十字路口的人群）。
     //      原因： 当多个目标靠得非常近时，如果追踪器太宽容，很容易发生 ID 劫持（比如 A 车和 B 车并排，追踪器把 A 的 ID 错误地连到了 B 的检测框上）。降低阈值能逼迫追踪器变得“严谨”，只认准那个跟历史轨迹重合度最高的目标。
-    // min_hits 连续追踪到多少帧才输出
+    // match_thresh 已追踪到的轨迹+丢失的规矩 vs 高分目标 的阈值
+    // low_match_thresh 剩余已追踪到的轨迹 vs 低分目标 的阈值
+    // unconfirmed_match_thresh 候选轨迹 vs 剩余高分目标 的阈值
+    // min_hits 连续追踪到多少帧才认定是追踪目标
 
     // 2. 初始化追踪器
     std::map<int, ByteTrack::BYTETracker> trackers;
@@ -205,6 +208,8 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
             config.track_config.track_low_thresh,
             config.track_config.new_track_thresh,
             config.track_config.match_thresh,
+            config.track_config.low_match_thresh,
+            config.track_config.unconfirmed_match_thresh,
             config.track_config.min_hits};
     }
     else
@@ -218,6 +223,8 @@ int track_video(const Global::GereralConfig &config, const std::string &video_pa
                 config.track_config.track_low_thresh,
                 config.track_config.new_track_thresh,
                 config.track_config.match_thresh,
+                config.track_config.low_match_thresh,
+                config.track_config.unconfirmed_match_thresh,
                 config.track_config.min_hits};
         }
     }

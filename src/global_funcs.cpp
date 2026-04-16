@@ -90,6 +90,16 @@ namespace Global
                     config.track_config.match_thresh = t["match_thresh"].get<float>();
                     std::cout << "track match_thresh: " << config.track_config.match_thresh << std::endl;
                 }
+                if (t.contains("low_match_thresh"))
+                {
+                    config.track_config.low_match_thresh = t["low_match_thresh"].get<float>();
+                    std::cout << "track low_match_thresh: " << config.track_config.low_match_thresh << std::endl;
+                }
+                if (t.contains("unconfirmed_match_thresh"))
+                {
+                    config.track_config.unconfirmed_match_thresh = t["unconfirmed_match_thresh"].get<float>();
+                    std::cout << "track unconfirmed_match_thresh: " << config.track_config.unconfirmed_match_thresh << std::endl;
+                }
                 if (t.contains("min_hits"))
                 {
                     config.track_config.min_hits = t["min_hits"].get<int>();
