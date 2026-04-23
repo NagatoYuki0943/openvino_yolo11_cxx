@@ -85,10 +85,10 @@ namespace Global
                     config.track_config.new_track_thresh = t["new_track_thresh"].get<float>();
                     std::cout << "track new_track_thresh: " << config.track_config.new_track_thresh << std::endl;
                 }
-                if (t.contains("match_thresh"))
+                if (t.contains("high_match_thresh"))
                 {
-                    config.track_config.match_thresh = t["match_thresh"].get<float>();
-                    std::cout << "track match_thresh: " << config.track_config.match_thresh << std::endl;
+                    config.track_config.high_match_thresh = t["high_match_thresh"].get<float>();
+                    std::cout << "track high_match_thresh: " << config.track_config.high_match_thresh << std::endl;
                 }
                 if (t.contains("low_match_thresh"))
                 {
